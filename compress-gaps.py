@@ -1,35 +1,47 @@
-from Bio import SeqIO
+#!/usr/bin/env python3
 import sys
 import numpy as np
+from Bio import AlignIO, SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
-#It requires 2 arguments, 1 input + 1 output
-if len(sys.argv) != 3:
-    sys.exit(1)
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: ./compress-gaps.py <input_msa.fasta> <output_msa.fasta>")
+        sys.exit(1)
 
-input_fasta = sys.argv[1]
-output_fasta = sys.argv[2]
+    infile, outfile = sys.argv[1], sys.argv[2]
 
-#Parse the FASTA alignment
-records = list(SeqIO.parse(input_fasta, "fasta"))
+    #Reads the input FASTA file as a multiple sequence alignment using BioPython's AlignIO.read() method.
+    alignment = AlignIO.read(infile, "fasta")
 
-seqs = [str(r.seq) for r in records]
-nseq = len(seqs)
-seqlen = len(seqs[0])
+    #Gets the number of sequences in the alignment
+    nseq = len(alignment)
+    #Gets the length of the alignment
+    aln_len = alignment.get_alignment_length()
 
-#Convert the alignment into a NumPy matrix
-msa_array = np.array([list(s) for s in seqs])
-#Compute gap fraction for each column
-gap_fraction = np.mean(msa_array == "-", axis=0)
-#Decide which columns to keep
-keep_cols = gap_fraction < 0.67
-#Build compressed sequences
-compressed_seqs = ["".join(msa_array[i, keep_cols]) for i in range(nseq)]
+    # For each sequence record in the alignment, converts its sequence to a string and 
+    # then to a list of characters 
+    # Converts it into a numpy 2D array where rows = sequences and columns = alignment positions
+    mat = np.array([list(str(rec.seq)) for rec in alignment])
+    
+    #This is a boolean array where the condition is true if cell is "-"
+    # Then converts into numeric value and then computes mean
+    gap_fraction = np.mean(mat == '-', axis=0)
 
-#Replace each SeqRecord’s sequence to compressed sequence
-for i, rec in enumerate(records):
-    rec.seq = rec.seq.__class__(compressed_seqs[i])
+    #Boolean array where columns whose gap fraction is less than 67% is kept
+    keep_cols = gap_fraction < 0.67
+    filtered_mat = mat[:, keep_cols]
 
-SeqIO.write(records, output_fasta, "fasta")
+    # Creates a new SeqRecord with the filtered sequence
+    # keeping the original ID and description
+    # Appends each new record to a list
+    new_records = []
+    for i, rec in enumerate(alignment):
+        new_seq = Seq(''.join(filtered_mat[i]))
+        new_records.append(SeqRecord(new_seq, id=rec.id, description=rec.description))
 
-print(f"Compressed alignment saved to {output_fasta}")
-print(f"Original length: {seqlen}; Compressed length: {sum(keep_cols)}")
+    SeqIO.write(new_records, outfile, "fasta")
+
+if __name__ == "__main__":
+    main()

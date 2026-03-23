@@ -1,21 +1,22 @@
-from Bio import SeqIO
+#!/usr/bin/env python3
 import sys
+from Bio import SeqIO
 
-if len(sys.argv) != 3:
-    sys.exit(1)
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: ./epitope-fraction.py <msa.fasta> <epitope>")
+        sys.exit(1)
 
-input_fasta = sys.argv[1]
-epitope = sys.argv[2]
-#Parse FASTA file
-records = list(SeqIO.parse(input_fasta, "fasta"))
+    infile, epitope = sys.argv[1], sys.argv[2]
+    records = list(SeqIO.parse(infile, "fasta"))
 
-match_count = 0
-# Loop through sequences and check for epitope
-for rec in records:
-    seq = str(rec.seq)
-    if epitope in seq:
-        match_count += 1
+    total = len(records)
+    #Counts how many sequences contain the epitope
+    # For each record, converts its sequence to a string:
+    # Check if the given epitope is present or not
+    # Then take sum for present epitope(1 if true)
+    matches = sum(1 for rec in records if epitope in str(rec.seq))
+    print(matches / total)
 
-fraction = match_count / len(records) if len(records) > 0 else 0
-
-print(fraction)
+if __name__ == "__main__":
+    main()

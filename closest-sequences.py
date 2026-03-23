@@ -1,32 +1,30 @@
-from Bio import SeqIO
+#!/usr/bin/env python3
 import sys
+from Bio import SeqIO
+from Bio.Seq import Seq
 
-#It requires 2 argument. 1 in fasta file and 2 is query sequence
-if len(sys.argv) != 3:
-    sys.exit(1)
-
-input_fasta = sys.argv[1]
-query_seq = sys.argv[2]
-#Parse the FASTA alignment
-records = list(SeqIO.parse(input_fasta, "fasta"))
-
-#Computes the number of mismatched positions between two sequences
 def hamming_distance(seq1, seq2):
-    # Pad shorter sequence with gaps so lengths match
-    length = min(len(seq1), len(seq2))
-    return sum(a != b for a, b in zip(seq1[:length], seq2[:length])) + abs(len(seq1) - len(seq2))
+    return sum(a != b for a, b in zip(seq1, seq2))
 
-distances = []
-for rec in records:
-    #sequence is converted to string
-    seq = str(rec.seq)
-    #Compute distance between query and each FASTA sequence
-    dist = hamming_distance(seq, query_seq)
-    distances.append((seq, dist))
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: ./closest-sequences.py <msa.fasta> <input_sequence>")
+        sys.exit(1)
 
-# Sorts the sequence similar to lease similar
-distances.sort(key=lambda x: x[1])
+    infile, query = sys.argv[1], sys.argv[2]
+    query_seq = Seq(query)
+    records = list(SeqIO.parse(infile, "fasta"))
 
-#Top 3 similar seq
-for seq, dist in distances[:3]:
-    print(seq)
+    distances = []
+    for rec in records:
+        seq_str = str(rec.seq)
+        dist = hamming_distance(seq_str, str(query_seq))
+        distances.append((rec, dist))
+
+    distances.sort(key=lambda x: x[1])
+
+    for rec, dist in distances[:3]:
+        print(rec.seq)
+
+if __name__ == "__main__":
+    main()

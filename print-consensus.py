@@ -1,26 +1,29 @@
-from Bio import SeqIO
-from collections import Counter
+#!/usr/bin/env python3
 import sys
-import numpy as np
-#It requires 1 argument
-if len(sys.argv) != 2:
-    sys.exit(1)
+from Bio import AlignIO
+from collections import Counter
+from Bio.Seq import Seq
 
-input_fasta = sys.argv[1]
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: ./print-consensus.py <msa.fasta>")
+        sys.exit(1)
 
-#Parse the FASTA alignment
-records = list(SeqIO.parse(input_fasta, "fasta"))
-seqs = [str(r.seq) for r in records]
-#Convert alignment into a NumPy array
-msa_array = np.array([list(s) for s in seqs])
+    infile = sys.argv[1]
+    alignment = AlignIO.read(infile, "fasta")
+    aln_len = alignment.get_alignment_length()
 
-#Loop through each alignment column
-consensus = ""
-for i in range(msa_array.shape[1]):
-    #column is extracted
-    col = msa_array[:, i]
-    #Count characters
-    counts = Counter(col)
-    #Take the most common one
-    consensus += counts.most_common(1)[0][0]
-print(consensus)
+    consensus_chars = []
+    for i in range(aln_len): #looping through each position in the alignment 
+        col = [str(rec.seq[i]) for rec in alignment] #extracts the character at position i
+        #Finds the most common character at this position 
+        # Creates a Counter object that counts frequencies of each character 
+        # Returns a list of ingle most common characters,count pair
+        consensus_chars.append(Counter(col).most_common(1)[0][0])
+
+    #Creates a BioPython Seq object by joining all consensus characters into a single string.
+    consensus_seq = Seq(''.join(consensus_chars))
+    print(consensus_seq)
+
+if __name__ == "__main__":
+    main()
